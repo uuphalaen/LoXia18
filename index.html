@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>罗霞 十八岁生日快乐</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; font-family: "Microsoft YaHei", sans-serif; }
+        
+        /* 马卡龙色系 */
+        .color-pink { background: #FFC0CB; }
+        .color-blue { background: #B0E0E6; }
+        .color-yellow { background: #FFFACD; }
+        .color-purple { background: #E6E6FA; }
+        .color-chocolate { background: #8B4513; }
+
+        /* 画面容器 */
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .screen-hidden { display: none; }
+
+        /* 画面1：密码弹窗 */
+        #screen1 { background: rgba(176, 224, 230, 0.8); }
+        .popup {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .popup h2 {
+            text-align: center;
+            color: #FFC0CB;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .popup input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #FFC0CB;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* 画面2：气泡 */
+        #screen2 { background: rgba(255, 250, 205, 0.5); }
+        .bubble {
+            position: absolute;
+            padding: 8px 15px;
+            border-radius: 20px;
+            color: white;
+            font-size: 14px;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 1s ease;
+        }
+
+        /* 画面3：蛋糕 */
+        #screen3 { 
+            background: rgba(255, 192, 203, 0.8); 
+            flex-direction: column;
+        }
+        .cake-box {
+            position: relative;
+            width: 100%;
+            height: 70%;
+        }
+        .cake-layer {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 8px 8px 0 0;
+            transition: top 1.5s ease;
+            top: -100px;
+        }
+        .layer1 { width: 200px; height: 40px; }
+        .layer2 { width: 160px; height: 40px; top: -100px; margin-top: 2px; }
+        .layer3 { width: 120px; height: 40px; top: -100px; margin-top: 2px; }
+        .text-box {
+            margin-top: 30px;
+            padding: 0 20px;
+            text-align: center;
+            color: black;
+            font-size: 16px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 2s, transform 2s;
+        }
+        .text-show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 画面4：粒子 */
+        #screen4 { background: rgba(230, 230, 250, 0.9); }
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- 画面1：密码弹窗 -->
+    <div id="screen1" class="screen">
+        <div class="popup">
+            <h2>小虾米</h2>
+            <input type="password" id="pwd-input" placeholder="请输入密码">
+            <div class="btn-group">
+                <button id="confirm-btn" class="btn color-pink">确定</button>
+                <button id="cancel-btn" class="btn color-blue">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 画面2：气泡祝福 -->
+    <div id="screen2" class="screen screen-hidden"></div>
+
+    <!-- 画面3：蛋糕+文字 -->
+    <div id="screen3" class="screen screen-hidden">
+        <div class="cake-box">
+            <div class="cake-layer layer1 color-chocolate"></div>
+            <div class="cake-layer layer2 color-chocolate"></div>
+            <div class="cake-layer layer3 color-chocolate"></div>
+        </div>
+        <div class="text-box" id="bless-text">
+            Hi~我是小羊~十八岁生日快乐呀~~~小虾米<br>
+            十八岁生日快乐哦 天天开心 年年幸福嘿嘿 天冷记得保暖 多喝热水
+        </div>
+    </div>
+
+    <!-- 画面4：粒子聚合 -->
+    <div id="screen4" class="screen screen-hidden">
+        <canvas id="particle-canvas"></canvas>
+    </div>
+
+    <script>
+        // 核心配置（简单明了）
+        const PWD = "1025";
+        const BUBBLE_NUM = 88;
+        const BUBBLE_SPEED = 2000;
+
+        // 元素获取
+        const s1 = document.getElementById("screen1");
+        const s2 = document.getElementById("screen2");
+        const s3 = document.getElementById("screen3");
+        const s4 = document.getElementById("screen4");
+        const pwdInput = document.getElementById("pwd-input");
+        const confirmBtn = document.getElementById("confirm-btn");
+        const cancelBtn = document.getElementById("cancel-btn");
+        const cake1 = document.querySelector(".layer1");
+        const cake2 = document.querySelector(".layer2");
+        const cake3 = document.querySelector(".layer3");
+        const blessText = document.getElementById("bless-text");
+        const canvas = document.getElementById("particle-canvas");
+        const ctx = canvas.getContext("2d");
+
+        // 适配画布大小
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
+        // 画面1：密码验证
+        confirmBtn.onclick = function() {
+            if (pwdInput.value === PWD) {
+                s1.classList.add("screen-hidden");
+                s2.classList.remove("screen-hidden");
+                createBubbles(); // 生成气泡
+            } else {
+                alert("密码错误！");
+                pwdInput.value = "";
+            }
+        };
+        cancelBtn.onclick = () => pwdInput.value = "";
+        pwdInput.onkeydown = (e) => e.key === "Enter" && confirmBtn.click();
+
+        // 画面2：生成88个气泡
+        function createBubbles() {
+            let count = 0;
+            const colors = ["#FFC0CB", "#B0E0E6", "#FFFACD", "#E6E6FA", "#98FB98", "#FFDAB9"];
+            const timer = setInterval(() => {
+                if (count >= BUBBLE_NUM) {
+                    clearInterval(timer);
+                    // 气泡结束后跳转到蛋糕画面
+                    setTimeout(() => {
+                        s2.classList.add("screen-hidden");
+                        s3.classList.remove("screen-hidden");
+                        animateCake();
+                    }, 3000);
+                    return;
+                }
+
+                // 创建气泡
+                const bubble = document.createElement("div");
+                bubble.className = "bubble";
+                bubble.innerText = "罗霞，生日快乐🎂";
+                // 随机样式
+                const size = Math.random() * 40 + 20;
+                const x = Math.random() * 90 + 5;
+                const y = Math.random() * 90 + 5;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                bubble.style.cssText = `
+                    width: ${size}px;
+                    left: ${x}%;
+                    top: ${y}%;
+                    background: ${color};
+                `;
+                s2.appendChild(bubble);
+
+                // 气泡动画
+                setTimeout(() => {
+                    bubble.style.opacity = "1";
+                    bubble.style.transform = "scale(1.1)";
+                }, 100);
+                setTimeout(() => {
+                    bubble.style.opacity = "0";
+                    bubble.style.transform = "scale(0.8)";
+                    setTimeout(() => bubble.remove(), 1000);
+                }, 3000);
+
+                count++;
+            }, BUBBLE_SPEED);
+        }
+
+        // 画面3：蛋糕坠落动画
+        function animateCake() {
+            const targetY = "30%"; // 画面1/3位置
+            // 第一层
+            setTimeout(() => cake1.style.top = targetY, 500);
+            // 第二层
+            setTimeout(() => cake2.style.top = targetY, 1500);
+            // 第三层
+            setTimeout(() => {
+                cake3.style.top = targetY;
+                // 显示祝福文字
+                setTimeout(() => blessText.classList.add("text-show"), 1000);
+                // 跳转到粒子画面
+                setTimeout(() => {
+                    s3.classList.add("screen-hidden");
+                    s4.classList.remove("screen-hidden");
+                    createParticles();
+                }, 5000);
+            }, 2500);
+        }
+
+        // 画面4：粒子聚合文字
+        function createParticles() {
+            const particles = [];
+            const particleNum = 500;
+            const text = "罗霞 十八岁生日快乐哦~~~";
+            
+            // 创建粒子
+            for (let i = 0; i < particleNum; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 3 + 1,
+                    color: ["#FFC0CB", "#B0E0E6", "#FFFACD", "#E6E6FA"][Math.floor(Math.random() * 4)],
+                    targetX: 0,
+                    targetY: 0
+                });
+            }
+
+            // 计算文字位置
+            function setTarget() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "bold 36px Microsoft YaHei";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "black";
+                // 第一行
+                ctx.fillText("罗霞", canvas.width/2, canvas.height/2 - 30);
+                // 第二行
+                ctx.fillText("十八岁生日快乐哦~~~", canvas.width/2, canvas.height/2 + 30);
+                
+                // 获取文字像素
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const targets = [];
+                for (let y = 0; y < canvas.height; y += 4) {
+                    for (let x = 0; x < canvas.width; x += 4) {
+                        const idx = (y * canvas.width + x) * 4;
+                        if (imgData.data[idx + 3] > 0) {
+                            targets.push({x, y});
+                        }
+                    }
+                }
+
+                // 分配目标位置
+                particles.forEach((p, i) => {
+                    const t = targets[i % targets.length];
+                    if (t) {
+                        p.targetX = t.x;
+                        p.targetY = t.y;
+                    }
+                });
+            }
+
+            // 粒子动画
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    // 粒子移动
+                    p.x += (p.targetX - p.x) * 0.05;
+                    p.y += (p.targetY - p.y) * 0.05;
+                    // 绘制粒子
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+
+            setTarget();
+            animate();
+        }
+    </script>
+</body>
+</html>
